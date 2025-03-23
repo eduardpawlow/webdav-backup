@@ -24,6 +24,20 @@ else
     echo "Backup encryption disabled"
 fi
 
+create_folders_by_filepath() {
+    local path="${1#/}" # delete the first slash if there is
+
+    IFS='/' read -ra parts <<< "$path"
+
+    folder_path=""
+    for ((i = 0; i < ${#parts[@]} - 1; i++)); do
+        folder_path="${folder_path}/${parts[i]}"
+        full_path="${WEBDAV_URL}${folder_path}"
+
+        curl -s -u "${WEBDAV_USERNAME}:${WEBDAV_PASSWORD}" -X MKCOL $full_path -o /dev/null
+    done
+}
+
 # Function to send Telegram messages
 send_telegram_message() {
     if [ "$TELEGRAM_ENABLED" = true ]; then
@@ -99,6 +113,8 @@ upload_file() {
     if [ "$ENCRYPTION_ENABLED" = true ]; then
         encrypt_file "$file"
     fi
+
+    create_folders_by_filepath "${WEBDAV_PATH}/${remote_path}"
 
     HTTP_CODE=$(curl -#L -u "${WEBDAV_USERNAME}:${WEBDAV_PASSWORD}" \
             -T "$file" \
